@@ -1,0 +1,34 @@
+# Virtual environment
+myvenv/
+venv/
+myenv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+.flaskenv
+
+# Local databases
+*.sqlite3
+
+# Logs
+*.log
+
+# IDE or Editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+
+# Ignore Excel temporary files
+~$*.xlsx
+
+# Ignore build and distribution directories
+build/
+dist/

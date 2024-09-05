@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List of Excel Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --fullscreen-column-width: 62.5fr;
+            --fullscreen-row-height: 2.5rem;
+            --fullscreen-font-size: 1.75rem;
+        }
+
+        .fullscreen-button {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+        }
+
+        .fullscreen {
+            background-color: #f87171;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th,
+        td {
+            padding: 0.625rem;
+            text-align: center;
+            height: var(--fullscreen-row-height);
+        }
+
+        th {
+            background-color: #4a5568;
+            color: white;
+            font-weight: bold;
+            font-size: var(--fullscreen-font-size);
+        }
+
+        .red-bg {
+            background-color: #e61e1e; /* Bright red for high contrast */
+            color: #ffffff; /* Pure white text */
+            animation: blink 1s infinite; /* Apply the blink animation */
+        }
+
+        .blue-bg {
+            background-color: #3737cc; /* Bright blue for high contrast */
+            color: #ffffff; /* Pure white text */
+        }
+
+        .green-bg {
+            background-color: #519f51; /* Bright green for high contrast */
+            color: #ffffff; /* Pure white text */
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8; /* Slightly less opaque */
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        body.fullscreen-mode {
+            background-color: #000000; /* Set background to black */
+            color: #ffffff; /* Set text color to white for visibility */
+        }
+
+        body.fullscreen-mode th,
+        body.fullscreen-mode td {
+            color: #ffffff; /* Ensure table text is white in fullscreen mode */
+        }
+
+        body.fullscreen-mode .table-container {
+            max-height: calc(100vh - 2rem); /* Adjust height to fit screen */
+            overflow-y: auto;
+        }
+
+        body.fullscreen-mode table {
+            border-collapse: collapse;
+        }
+
+        body.fullscreen-mode .query-buttons {
+            display: none; /* Hide query buttons in fullscreen mode */
+        }
+
+        .button-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <div style="margin:auto; width: 95%;">
+        <button id="fullscreen-btn" class="fullscreen-button p-2 text-white rounded-lg shadow-md fullscreen" onclick="toggleFullscreen()">
+            <span id="fullscreen-icon" class="material-icons">fullscreen</span>
+        </button>
+
+        <h1 class="text-4xl font-bold text-center mb-10">List of Excel Data</h1>
+
+        <div class="query-buttons mb-5">
+            <div class="mb-4 flex items-end gap-4">
+                <div class="flex flex-col">
+                    <label for="from-date" class="text-lg font-medium mb-1">From Date:</label>
+                    <input type="date" id="from-date" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="flex flex-col">
+                    <label for="to-date" class="text-lg font-medium mb-1">To Date:</label>
+                    <input type="date" id="to-date" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="flex flex-col">
+                    <label for="refresh-rate" class="text-lg font-medium mb-1">Refresh Rate:</label>
+                    <select id="refresh-rate" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="5000">5 seconds</option>
+                        <option value="10000">10 seconds</option>
+                        <option value="15000">15 seconds</option>
+                        <option value="30000">30 seconds</option>
+                    </select>
+                </div>
+                <div class="button-row">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="applyFilter()">Apply Filter</button>
+                    <button class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500" onclick="resetFilters()">Reset Filters</button>
+                    <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500" onclick="window.location.href='/'">Go to Home</button>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Job No</th>
+                        <th>Department/Name</th>
+                        <th>Nature of Job</th>
+                        <th>Contact No</th>
+                        <th>Person</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody id="data-list">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval = 5000;
+        let intervalId;
+        let currentFilter = '';
+
+        function fetchData() {
+            fetch(`/list?${currentFilter}`)
+                .then(response => response.json())
+                .then(data => {
+                    const dataList = document.getElementById('data-list');
+                    dataList.innerHTML = '';
+
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.className = getColorClass(row[row.length - 1]);
+
+                        const content = `
+                            <td><b>${formatDate(row[1]) || ''}</b></td>
+                            <td><b>${row[2] || ''}</b></td>
+                            <td><b>${row[3] || ''}</b></td>
+                            <td><b>${row[4] || ''}</b></td>
+                            <td><b>${row[5] || ''}</b></td>
+                            <td><b>${row[7] || ''}</b></td>
+                            <td><b>${row[8] || ''}</b></td>
+                        `;
+
+                        tr.innerHTML = content;
+                        dataList.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function getColorClass(color) {
+            switch (color) {
+                case 'Red':
+                    return 'red-bg';
+                case 'Blue':
+                    return 'blue-bg';
+                case 'Green':
+                    return 'green-bg';
+                default:
+                    return '';
+            }
+        }
+
+        function toggleFullscreen() {
+            const body = document.body;
+            if (!document.fullscreenElement) {
+                body.requestFullscreen();
+                document.getElementById('fullscreen-icon').textContent = 'EXIT';
+                body.classList.add('fullscreen-mode');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    document.getElementById('fullscreen-icon').textContent = 'fullscreen';
+                    body.classList.remove('fullscreen-mode');
+                }
+            }
+        }
+
+        function applyFilter() {
+            const fromDate = document.getElementById('from-date').value;
+            const toDate = document.getElementById('to-date').value;
+            const refreshRate = document.getElementById('refresh-rate').value;
+
+            currentFilter = `fromdate=${formatForQuery(fromDate)}&todate=${formatForQuery(toDate)}`;
+            fetchData();
+
+            clearInterval(intervalId);
+            refreshInterval = Math.max(parseInt(refreshRate, 10), 2000);
+            intervalId = setInterval(fetchData, refreshInterval);
+
+            alert('Filtered');
+        }
+
+        function formatForQuery(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function resetFilters() {
+            document.getElementById('from-date').value = '';
+            document.getElementById('to-date').value = '';
+            currentFilter = '';
+            fetchData();
+
+            clearInterval(intervalId);
+            refreshInterval = 5000;
+            intervalId = setInterval(fetchData, refreshInterval);
+
+            alert('Filters reset');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.requestFullscreen().catch(err => console.error(`Error attempting to enable fullscreen mode: ${err.message}`));
+            fetchData();
+            intervalId = setInterval(fetchData, refreshInterval);
+        });
+    </script>
+</body>
+
+</html>

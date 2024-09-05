@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List of Excel Data - Fullscreen</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --fullscreen-column-width: 62.5fr;
+            --fullscreen-row-height: 2.5rem;
+            --fullscreen-font-size: 1.75rem;
+        }
+
+        body {
+            background-color: #000000; /* Set background to black */
+            color: #ffffff; /* Set text color to white */
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .table-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th,
+        td {
+            padding: 0.625rem;
+            text-align: center;
+            height: var(--fullscreen-row-height);
+        }
+
+        th {
+            background-color: #4a5568;
+            color: white;
+            font-weight: bold;
+            font-size: var(--fullscreen-font-size);
+        }
+
+        .red-bg {
+            background-color: #e61e1e; /* Bright red */
+            color: #ffffff; /* Pure white text */
+            animation: blink 1s infinite; /* Blinking effect */
+        }
+
+        .blue-bg {
+            background-color: #3737cc; /* Bright blue */
+            color: #ffffff; /* Pure white text */
+        }
+
+        .green-bg {
+            background-color: #519f51; /* Bright green */
+            color: #ffffff; /* Pure white text */
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="font-sans leading-normal tracking-normal">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Job No</th>
+                    <th>Department/Name</th>
+                    <th>Nature of Job</th>
+                    <th>Contact No</th>
+                    <th>Person</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody id="data-list">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function fetchData() {
+            fetch(`/list`)
+                .then(response => response.json())
+                .then(data => {
+                    const dataList = document.getElementById('data-list');
+                    dataList.innerHTML = '';
+
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.className = getColorClass(row[row.length - 1]);
+
+                        const content = `
+                            <td><b>${formatDate(row[1]) || ''}</b></td>
+                            <td><b>${row[2] || ''}</b></td>
+                            <td><b>${row[3] || ''}</b></td>
+                            <td><b>${row[4] || ''}</b></td>
+                            <td><b>${row[5] || ''}</b></td>
+                            <td><b>${row[7] || ''}</b></td>
+                            <td><b>${row[8] || ''}</b></td>
+                        `;
+
+                        tr.innerHTML = content;
+                        dataList.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function getColorClass(color) {
+            switch (color) {
+                case 'Red':
+                    return 'red-bg';
+                case 'Blue':
+                    return 'blue-bg';
+                case 'Green':
+                    return 'green-bg';
+                default:
+                    return '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+            setInterval(fetchData, 5000);
+        });
+    </script>
+</body>
+
+</html>
